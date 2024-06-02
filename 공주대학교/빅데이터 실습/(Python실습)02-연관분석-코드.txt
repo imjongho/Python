@@ -1,0 +1,43 @@
+import pandas as pd
+from mlxtend.preprocessing import TransactionEncoder
+from mlxtend.frequent_patterns import apriori
+from mlxtend.frequent_patterns import association_rules
+
+!!wget 'https://archive.ics.uci.edu/ml/machine-learning-databases/00352/Online%20Retail.xlsx'
+df = pd.read_excel('Online Retail.xlsx')
+df.dropna(subset=['Description', 'CustomerID'], inplace=True)
+
+#주문 데이터를 거래 형태로 변환
+transactions = df.groupby('InvoiceNo')['Description'].apply(list)
+
+#데이터 인코딩
+te = TransactionEncoder()
+te_ary = te.fit(transactions).transform(transactions)
+df = pd.DataFrame(te_ary, columns=te.columns_)
+
+#Apriori 알고리즘 적용
+min_support = 0.01
+frequent_itemsets = apriori(df, min_support=min_support, use_colnames=True)
+
+#연관 규칙 및 지표 계산
+rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1)
+
+#결과 출력
+print(rules[['antecedents', 'consequents', 'support', 'confidence', 'lift']])
+
+
+#추천 함수를 정의 상품 추천 시스템
+def recommend_products(rules, products_bought, top_n=10):
+    recommendations = rules[rules['antecedents'].apply(lambda x: set(products_bought).issubset(x))]
+    recommendations = recommendations.sort_values(by='lift', ascending=False)
+    
+    recommended_products = set()
+    for _, row in recommendations.iterrows():
+        recommended_products.update(set(row['consequents']))
+        if len(recommended_products) >= top_n:
+            break
+    return list(recommended_products)[:top_n]
+
+products_bought = ['72 SWEETHEART FAIRY CAKE CASES']
+recommended = recommend_products(rules, products_bought)
+print("추천 상품", recommended)

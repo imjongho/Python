@@ -1,0 +1,240 @@
+from sklearn.datasets import load_wine
+import pandas as pd
+
+wine = load_wine()
+df_x = pd.DataFrame(wine.data)
+df_y = wine.target
+df_x.info()
+
+df_corr = pd.concat([df_x, pd.DataFrame(df_y, columns = ['label'])], axis = 1)
+df_corr.corr()['label'].abs().plot.bar()
+
+corr = df_corr.corr()['label'].abs()
+df_columns = corr[corr >= 0.4][:-1].index
+
+
+df_x = df_x[df_columns]
+
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+df_x = scaler.fit_transform(df_x)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(df_x, df_y, test_size=0.2)
+
+
+
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+
+# 로지스틱 회귀 모델 생성
+logreg = LogisticRegression()
+
+# 모델 학습
+logreg.fit(X_train, y_train)
+
+# 예측
+y_pred = logreg.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+
+
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report
+
+# KNN 모델 생성
+knn = KNeighborsClassifier()
+
+# 모델 학습
+knn.fit(X_train, y_train)
+
+# 예측
+y_pred = knn.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+
+
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report
+
+# 의사결정 트리 모델 생성
+decisiontree = DecisionTreeClassifier()
+
+# 모델 학습
+decisiontree.fit(X_train, y_train)
+
+# 예측
+y_pred = decisiontree.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+
+
+
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+import pydotplus
+from IPython.display import Image
+
+# 시각화
+dot_data = export_graphviz(decisiontree, out_file=None,
+                           feature_names=df_columns.to_list(),
+                           class_names=wine.target_names,
+                           filled=True, rounded=True,
+                           special_characters=True)
+
+graph = pydotplus.graph_from_dot_data(dot_data)
+Image(graph.create_png())
+
+
+
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+
+# RandomForest 모델 생성
+Randomforest = RandomForestClassifier()
+
+# 모델 학습
+Randomforest.fit(X_train, y_train)
+
+# 예측
+y_pred = Randomforest.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+
+
+
+import xgboost
+from sklearn.metrics import classification_report
+
+# XGBoost 모델 생성
+xgb = xgboost.XGBClassifier()
+
+# 모델 학습
+xgb.fit(X_train, y_train)
+
+# 예측
+y_pred = xgb.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+
+
+
+from sklearn.svm import SVC
+from sklearn.metrics import classification_report
+
+# SVM 모델 생성
+svm = SVC()
+
+# 모델 학습
+svm.fit(X_train, y_train)
+
+# 예측
+y_pred = svm.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+
+
+
+
+from sklearn.model_selection import KFold
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# RandomForest 모델 생성
+Randomforest = RandomForestClassifier()
+
+# 5-fold 교차 검증
+kfold = KFold(n_splits=5, shuffle=True, random_state=0)
+
+# SVM 모델 학습 및 검증
+for train_idx, test_idx in kfold.split(wine.data):
+    X_train, X_test = wine.data[train_idx], wine.data[test_idx]
+    y_train, y_test = wine.target[train_idx], wine.target[test_idx]
+    
+    Randomforest.fit(X_train, y_train)
+    score = Randomforest.score(X_test, y_test)
+    print("Accuracy:", score)
+
+
+
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+
+# 랜덤 포레스트 분류기 객체 생성
+rfc = RandomForestClassifier()
+
+# 하이퍼파라미터 후보군 설정
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5, 10]
+}
+
+# 그리드 탐색을 수행할 객체 생성
+grid_search = GridSearchCV(
+    estimator=rfc,
+    param_grid=param_grid,
+    cv=5,
+    scoring=['accuracy', 'f1', 'roc_auc'],
+    refit='accuracy',
+    n_jobs=-1,
+    verbose=3
+)
+
+# 그리드 탐색 수행
+grid_search.fit(X_train, y_train)
+
+# 최적 파라미터 출력
+print("Best parameters: ", grid_search.best_params_)
+
+# 최적 파라미터를 사용한 모델의 성능 출력
+y_pred = grid_search.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+
+
+
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from scipy.stats import randint
+from sklearn.metrics import classification_report
+
+# 모델 정의
+model = RandomForestClassifier()
+
+# 탐색할 하이퍼파라미터 공간 설정
+param_dist = {
+    'n_estimators': randint(10, 100),
+    'max_features': ['sqrt', 'log2'],
+    'max_depth': [None, 10, 20, 30],
+    'min_samples_split': randint(2, 11),
+    'min_samples_leaf': randint(1, 11),
+    'bootstrap': [True, False]
+}
+
+# 랜덤 탐색 객체 생성
+random_search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=20, cv=5)
+
+# 랜덤 탐색 수행
+random_search.fit(X_train, y_train)
+
+# 최적 하이퍼파라미터 출력
+print("최적 하이퍼파라미터: ", random_search.best_params_)
+
+# 최적 파라미터를 사용한 모델의 성능 출력
+y_pred = random_search.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+
+
