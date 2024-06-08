@@ -1,0 +1,163 @@
+# Python 실습 01 - 전처리
+
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('https://raw.githubusercontent.com/TeamLab/machine_learning_from_scratch_with_python/master/code/ch12/titanic/train.csv')
+
+#1
+# df.head(2)
+
+#2
+df = df.drop(['Name'], axis=1)
+#df.head(2)
+
+#3
+from sklearn.preprocessing import LabelEncoder
+encoder = LabelEncoder()
+df['Sex'] = encoder.fit_transform(df['Sex'].values)
+#df.head(2)
+
+#4
+from sklearn.preprocessing import OneHotEncoder
+oh_encoder = OneHotEncoder(sparse=False)
+oh_df = oh_encoder.fit_transform(np.array(df['Embarked']).reshape(-1, 1))
+
+onehot_df = pd.DataFrame(oh_df, columns = ["Embarked"+str(int(i)) for i in range(oh_df.shape[1])])
+df = df.drop(['Embarked'], axis = 1)
+df = pd.concat([df, onehot_df], axis= 1)
+#df.head(2)
+
+#5
+df = df.drop(['Ticket'], axis=1)
+df = df.drop(['Cabin'], axis=1)
+#df.head(2)
+
+#6
+#df.info()
+
+#7 결측치 처리
+#df_drop_row = df.dropna(axis = 0)
+#df_drop_row.info()
+
+#8
+#df_drop_colmn = df.dropna(axis = 1)
+#df_drop_colmn.info()
+
+#9
+#df.iloc[3:6,:]
+
+#10
+#df_fill = df.fillna(0)
+#df_fill.iloc[3:6,:]
+
+#11
+#df.iloc[4:7,:]
+
+#12
+#df_fill = df.fillna(method='pad')
+#df_fill.iloc[4:7,:]
+
+#13
+#df.iloc[4:7,:]
+
+#14
+#df_fill = df.fillna(df.mean())
+#df_fill.iloc[4:7,:]
+
+#15 피어슨 상관계수
+df = df_drop_row
+#df.corr()['Survived'].abs().plot.bar()
+
+#16
+from sklearn.ensemble import RandomForestRegressor
+import matplotlib.pyplot as plt
+
+df_x = df.drop(['Survived'], axis=1)
+df_y = df['Survived']
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(df_x, df_y)
+
+importance = rf_model.feature_importances_
+plt.figure(figsize=(8,3))
+#plt.bar(df_x.columns, importance)
+
+#17
+from sklearn.linear_model import Lasso
+import matplotlib.pyplot as plt
+
+df_x = df.drop(['Survived'], axis=1)
+df_y = df['Survived']
+lasso_model = Lasso(alpha=0.1)
+lasso_model.fit(df_x, df_y)
+
+y_pred = lasso_model.predict(df_x)
+
+importance = lasso_model.coef_
+plt.figure(figsize=(8,3))
+#plt.bar(df_x.columns, importance)
+
+# 18 PCA
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+df_x = df.drop(['Survived'], axis=1)
+pca = PCA()
+
+pca.fit(df_x)
+variance_ratio = pca.explained_variance_ratio_
+
+plt.figure(figsize = (8,3))
+plt.plot(range(1, len(variance_ratio)+1), variance_ratio, marker='o')
+plt.xlabel('Number of Components')
+plt.ylabel('Variance Ratio')
+plt.title('PCCA Elbow Graph')
+plt.show()
+
+#19 LDA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+import matplotlib.pyplot as plt
+
+df_x = df.drop(['Survived'], axis = 1)
+
+lda = LinearDiscriminantAnalysis()
+lda.fit(df_x, df_y)
+
+print('LDA설명률 : ', lda.explained_variance_ratio_)
+df_x = lda.transform(df_x)
+
+#20 Standard Scaler
+from sklearn.preprocessing import StandardScaler
+
+Scaler = StandardScaler()
+df_standard = Scaler.fit_transform(df)
+
+df_standard[0:2]
+
+#21
+import matplotlib.pyplot as plt
+fig,axs = plt.subplots(1,2, figsize = (10,3))
+
+axs[0].hist(df.iloc[:,4])
+axs[0].set_title('Before')
+
+axs[1].hist(df_standard[:,4])
+axs[1].set_title('After')
+
+#22
+from sklearn.preprocessing import MinMaxScaler
+
+Scaler = MinMaxScaler()
+df_MinMax = Scaler.fit_transform(df)
+
+df_MinMax[0:2]
+
+#23
+import matplotlib.pyplot as plt
+fig, axs = plt.subplots(1,2, figsize = (10,3))
+
+axs[0].hist(df.iloc[:,4])
+axs[0].set_title('Before')
+
+axs[1].hist(df_MinMax[:,4])
+axs[1].set_title('After')
